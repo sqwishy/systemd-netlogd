@@ -57,6 +57,7 @@ int dev_urandom(void *p, size_t n) {
 
         /* Use the getrandom() syscall unless we know we don't have
          * it, or when the requested size is too large for it. */
+#ifdef GRND_NONBLOCK
         if (have_syscall != 0 || (size_t) (int) n != n) {
                 r = getrandom(p, n, GRND_NONBLOCK);
                 if (r == (int) n) {
@@ -83,6 +84,8 @@ int dev_urandom(void *p, size_t n) {
                         /* too short read? */
                         return -ENODATA;
         }
+#else
+#endif
 
         fd = open("/dev/urandom", O_RDONLY|O_CLOEXEC|O_NOCTTY);
         if (fd < 0)
