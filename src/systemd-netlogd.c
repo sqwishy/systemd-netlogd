@@ -33,7 +33,6 @@
 #include "fs-util.h"
 #include "user-util.h"
 #include "fileio.h"
-#include "capability-util.h"
 #include "network-util.h"
 #include "netlog-conf.h"
 #include "netlog-manager.h"
@@ -42,39 +41,6 @@
 
 static const char *arg_cursor = NULL;
 static const char *arg_save_state = STATE_FILE;
-
-static int setup_cursor_state_file(Manager *m, uid_t uid, gid_t gid) {
-        _cleanup_fclose_ FILE *f = NULL;
-        _cleanup_close_ int fd = -1;
-        int r;
-
-        assert(m);
-
-        r = mkdir_parents(m->state_file, 0755);
-        if (r < 0)
-                return log_error_errno(r, "Cannot create parent directory of state file %s: %m",
-                                       m->state_file);
-
-        /* change permission of the state file parent dir */
-        r = chmod_and_chown("/var/lib/systemd/journal-netlogd", 0744, uid, gid);
-        if (r < 0)
-                return log_error_errno(r,
-                                       "Failed to change permission parent directory of state file %s: %m",
-                                       m->state_file);
-
-        fd = open(m->state_file, O_RDWR|O_CLOEXEC, 0644);
-        if (fd >= 0) {
-
-                /* Try to fix the access mode, so that we can still
-                   touch the file after dropping priviliges */
-                fchmod(fd, 0644);
-                fchown(fd, uid, gid);
-        } else
-                /* create stamp file with the compiled-in date */
-                return touch_file(m->state_file, true, USEC_INFINITY, uid, gid, 0644);
-
-        return 0;
-}
 
 static void help(void) {
         printf("%s ..\n\n"
@@ -190,17 +156,6 @@ int main(int argc, char **argv) {
                 goto finish;
         }
 
-        r = setup_cursor_state_file(m, uid, gid);
-        if (r < 0)
-                goto cleanup;
-
-        r = drop_privileges(uid, gid,
-                            (1ULL << CAP_NET_ADMIN) |
-                            (1ULL << CAP_NET_BIND_SERVICE) |
-                            (1ULL << CAP_NET_BROADCAST));
-        if (r < 0)
-                goto finish;
-
         log_debug("%s running as pid "PID_FMT,
                   program_invocation_short_name, getpid());
 
@@ -211,13 +166,13 @@ int main(int argc, char **argv) {
         if (network_is_online()) {
                 r = manager_connect(m);
                 if (r < 0)
-                        goto finish;
+                        goto cleanup;
         }
 
         r = sd_event_loop(m->event);
         if (r < 0) {
                 log_error_errno(r, "Failed to run event loop: %m");
-                goto finish;
+                goto cleanup;
         }
 
         sd_event_get_exit_code(m->event, &r);

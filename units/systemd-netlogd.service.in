@@ -11,7 +11,12 @@ Documentation=man:systemd-netlogd.conf(5)
 After=network.target
 
 [Service]
-ExecStart=/usr/lib/systemd/systemd-netlogd
+ExecStartPre=/bin/mkdir -p /var/lib/systemd/journal-netlogd
+ExecStartPre=/bin/chown systemd-journal-netlog:systemd-journal-netlog /var/lib/systemd/journal-netlogd
+ExecStart=/lib/systemd/systemd-netlogd
+User=systemd-journal-netlog
+Group=systemd-journal-netlog
+PermissionsStartOnly=yes
 PrivateTmp=yes
 PrivateDevices=yes
 WatchdogSec=20min

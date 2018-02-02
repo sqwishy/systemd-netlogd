@@ -25,7 +25,6 @@
 #include "socket-util.h"
 #include "conf-parser.h"
 #include "network-util.h"
-#include "capability-util.h"
 #include "signal-util.h"
 #include "mkdir.h"
 #include "fd-util.h"

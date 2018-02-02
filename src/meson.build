@@ -2,8 +2,6 @@ libshared_sources = files('''
 	missing_syscall.h
 	missing.h
 	def.h
-	capability-util.c
-	capability-util.h
 	conf-parser.c
 	conf-parser.h
 	conf-files.c
