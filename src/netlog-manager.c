@@ -350,6 +350,11 @@ static int manager_journal_monitor_listen(Manager *m) {
                 if (r < 0)
                         return log_error_errno(r, "Failed to seek to cursor %s: %m",
                                                m->last_cursor);
+        } else {
+                r = sd_journal_seek_tail(m->journal);
+                if (r < 0)
+                        return log_error_errno(r, "Failed to seek to tail.");
+                log_info("No cursor available, seeked to tail.");
         }
 
         return 0;
